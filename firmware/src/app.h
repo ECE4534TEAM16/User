@@ -102,10 +102,9 @@ typedef enum
 	APP_STATE_INIT=0,
 
 	/* TODO: Define states used by the application state machine. */
-            APP_STATE_LEFT,
-            APP_STATE_RIGHT,
-            APP_STATE_STRAIGHT
-
+            APP_STATE_RUN,
+            APP_STATE_IDLE,
+            
 } APP_STATES;
 
 

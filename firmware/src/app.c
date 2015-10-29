@@ -90,53 +90,19 @@ void readIR()
 {
     //chipkit pit 48-53
     /* Read from sensors
-    appData.IRData ^= (-(PLIB_PORTS_PinGet(PORTS_ID_0, PORT_CHANNEL_D, PORTS_BIT_POS_8) ^ appData.IRData) & (1<<0));
-    appData.IRData ^= (-(PLIB_PORTS_PinGet(PORTS_ID_0, PORT_CHANNEL_D, PORTS_BIT_POS_11) ^ appData.IRData) & (1<<1));
-    appData.IRData ^= (-(PLIB_PORTS_PinGet(PORTS_ID_0, PORT_CHANNEL_G, PORTS_BIT_POS_7) ^ appData.IRData) & (1<<2));
-    appData.IRData ^= (-(PLIB_PORTS_PinGet(PORTS_ID_0, PORT_CHANNEL_G, PORTS_BIT_POS_8) ^ appData.IRData) & (1<<3));
-    appData.IRData ^= (-(PLIB_PORTS_PinGet(PORTS_ID_0, PORT_CHANNEL_G, PORTS_BIT_POS_6) ^ appData.IRData) & (1<<4));
-    appData.IRData ^= (-(PLIB_PORTS_PinGet(PORTS_ID_0, PORT_CHANNEL_G, PORTS_BIT_POS_9) ^ appData.IRData) & (1<<5));
+    appData.IRData = PLIB_PORTS_Read(PORTS_ID_0, PORTS_CHANNEL_E);
     */
     
-    /* Regular Switching
-    switch(appData.state)
+    uint8_t fakeIRData[] = {0};
+    
+    appData.IRData = fakeIRData[rand() % 1];
+    
+    if(appData.state == APP_STATE_RUN)
     {
-        case APP_STATE_INIT:
-        {
-            appData.IRData = 0;
-            break;
-        }
-        case APP_STATE_STRAIGHT:
-        {
-            appData.IRData = 51;
-            break;
-        }
-        case APP_STATE_LEFT:
-        {
-            appData.IRData = 57;
-            break;
-        }
-        case APP_STATE_RIGHT:
-        {
-            appData.IRData = 39;
-            break;
-        }
-        
-        default:
-        {
-            break;
-        }
+        interpretIR();
     }
-    */
-    
-    uint8_t fakeIRData[] = {60,57,51,39,15,3,48,0};
-    
-    appData.IRData = fakeIRData[rand() % 8];
-    
-    PLIB_PORTS_Write(PORTS_ID_0, PORT_CHANNEL_E, appData.IRData);
-    //debugOut(printf("readIR() - IR Data: %i", appData.IRData))
-    
-    //interpretIR();
+
+    //debugOut(printf("readIR() - IR Data: %i", appData.IRData));
 }
 
 void moveRobot(int leftSpeed, int rightSpeed)
@@ -173,8 +139,10 @@ void moveRobot(int leftSpeed, int rightSpeed)
 
 /* TODO:  Add any necessary local functions.
 */
+
 void interpretIR()
 {
+    //PLIB_PORTS_Write (PORTS_ID_0, PORT_CHANNEL_E, appData.IRData);
     //ASSUMPTION - Dark line = 0
     switch(appData.IRData)
     {
@@ -215,6 +183,7 @@ void interpretIR()
         case 3: 
         {
             moveRobot(0,0);
+            getFromMessageQueue();
             break;
         }
         //Right
@@ -232,11 +201,9 @@ void interpretIR()
             break;
         }
         
-        
         default:
         {
             moveRobot(0,0);
-            getFromMessageQueue();
             break;
         }
     }
@@ -252,34 +219,53 @@ void getFromMessageQueue()
         //BAD
     }
     
+    PLIB_PORTS_Write (PORTS_ID_0, PORT_CHANNEL_E, dir);
+    
     switch(dir)
     {
         case 'l':
         {
             hardLeft();
+            break;
         }
         case 'r':
         {
             hardRight();
+            break;
         }
         case 's':
         {
             hardStraight();
+            break;
+        }
+        case 'E':
+        {
+            appData.state = APP_STATE_IDLE;
+            break;
+        }
+        default:
+        {
+            break;
         }
     }
+    
+    //debugOut(printf("getFromMessageQueue() - Case Read: %c", dir))
 }
 
 void hardLeft()
 {
-    PLIB_PORTS_Write(PORTS_ID_0, PORT_CHANNEL_E, 'L');
+    moveRobot(-800,800);
+    //debugOut(printf("hardLeft()"))
 }
 void hardRight()
 {
-    PLIB_PORTS_Write(PORTS_ID_0, PORT_CHANNEL_E, 'R');
+    moveRobot(800,-800);
+    //debugOut(printf("hardRight()"))
 }
 void hardStraight()
 {
-    PLIB_PORTS_Write(PORTS_ID_0, PORT_CHANNEL_E, 'S');
+    moveRobot(-800,-800);
+    //debugOut(printf("hardStraight()"))
 }
 
 // *****************************************************************************
@@ -322,10 +308,6 @@ void APP_Initialize ( void )
 
     PLIB_PORTS_DirectionOutputSet (PORTS_ID_0, PORT_CHANNEL_E, 0xFF);
     
-    //FreeRTOS Timer for testing
-    TimerHandle_t irTimer = xTimerCreate("IR Timer", 5000/portTICK_PERIOD_MS,pdTRUE, (void*) 1, readIR);
-    xTimerStart(irTimer, 100);
-    
     //Message Queues
     MsgQueue_User_Directions = xQueueCreate( 50, sizeof( char ) );
     if( MsgQueue_User_Directions == 0 )
@@ -333,8 +315,25 @@ void APP_Initialize ( void )
         //BAD
     }
     
+    //FreeRTOS timer
+    TimerHandle_t irTimer = xTimerCreate("IR Timer", 500/portTICK_PERIOD_MS,pdTRUE, (void*) 1, readIR);
+    xTimerStart(irTimer, 100);
+    
     //init test queue
-    xQueueSend(MsgQueue_User_Directions, 'l', 5);
+    char in = 'l';
+    xQueueSend(MsgQueue_User_Directions, &in, 5);
+    in = 'r';
+    xQueueSend(MsgQueue_User_Directions, &in, 5);
+    in = 's';
+    xQueueSend(MsgQueue_User_Directions, &in, 5);
+    in = 'r';
+    xQueueSend(MsgQueue_User_Directions, &in, 5);
+    in = 's';
+    xQueueSend(MsgQueue_User_Directions, &in, 5);
+    in = 'l';
+    xQueueSend(MsgQueue_User_Directions, &in, 5);
+    in = 'E';
+    xQueueSend(MsgQueue_User_Directions, &in, 5);
 }
 
 
@@ -354,16 +353,24 @@ void APP_Tasks ( void )
         /* Application's initial state. */
         case APP_STATE_INIT:
         {
+            appData.state = APP_STATE_RUN;
             break;
         }
 
         /* TODO: implement your application state machine.*/
+        case APP_STATE_RUN:
+        {
+            break;
+        }
+        case APP_STATE_IDLE:
+        {
+            break;
+        }
         
         /* The default state should never be executed. */
         default:
         {
             /* TODO: Handle error in application's state machine. */
-            //readIR();
             break;
         }
     }
