@@ -71,6 +71,10 @@ extern "C" {
     // TODO If C++ is being used, regular C code needs function names to have C 
     // linkage so the functions can be used by the c code. 
 QueueHandle_t MsgQueue_User_Directions;
+QueueHandle_t MsgQueue_Error_Log;
+QueueHandle_t MsgQueue_temp;
+QueueHandle_t MsgQueue_LeftEncoder;
+QueueHandle_t MsgQueue_RightEncoder;
 
 #ifdef	__cplusplus
 }

@@ -81,9 +81,9 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // *****************************************************************************
 /* Clock System Service Configuration Options
 */
-#define SYS_CLK_FREQ                        4000000ul
-#define SYS_CLK_BUS_PERIPHERAL_1            500000ul
-#define SYS_CLK_UPLL_BEFORE_DIV2_FREQ       7999992ul
+#define SYS_CLK_FREQ                        80000000ul
+#define SYS_CLK_BUS_PERIPHERAL_1            80000000ul
+#define SYS_CLK_UPLL_BEFORE_DIV2_FREQ       48000000ul
 #define SYS_CLK_CONFIG_PRIMARY_XTAL         8000000ul
 #define SYS_CLK_CONFIG_SECONDARY_XTAL       0ul
    
@@ -104,6 +104,8 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
 /*** Timer Driver Configuration ***/
 #define DRV_TMR_INTERRUPT_SOURCE_IDX0       INT_SOURCE_TIMER_2
+#define DRV_TMR_INTERRUPT_SOURCE_IDX1       INT_SOURCE_TIMER_3
+#define DRV_TMR_INTERRUPT_SOURCE_IDX2       INT_SOURCE_TIMER_4
  
  // *****************************************************************************
 /* USART Driver Configuration Options
@@ -126,7 +128,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #define DRV_USART_INIT_FLAG_AUTO_BAUD_IDX0          false
 #define DRV_USART_INIT_FLAG_STOP_IN_IDLE_IDX0       false
 #define DRV_USART_INIT_FLAGS_IDX0                   0
-#define DRV_USART_BRG_CLOCK_IDX0                    500000
+#define DRV_USART_BRG_CLOCK_IDX0                    80000000
 #define DRV_USART_BAUD_RATE_IDX0                    57600
 #define DRV_USART_LINE_CNTRL_IDX0                   DRV_USART_LINE_CONTROL_8NONE1
 #define DRV_USART_HANDSHAKE_MODE_IDX0               DRV_USART_HANDSHAKE_NONE
@@ -134,8 +136,8 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #define DRV_USART_RCV_INT_SRC_IDX0                  INT_SOURCE_USART_1_RECEIVE
 #define DRV_USART_ERR_INT_SRC_IDX0                  INT_SOURCE_USART_1_ERROR
 #define DRV_USART_INT_VECTOR_IDX0                   INT_VECTOR_UART1
-#define DRV_USART_INT_PRIORITY_IDX0                 INT_PRIORITY_LEVEL1
-#define DRV_USART_INT_SUB_PRIORITY_IDX0             INT_SUBPRIORITY_LEVEL0
+#define DRV_USART_INT_PRIORITY_IDX0                 INT_PRIORITY_LEVEL3
+#define DRV_USART_INT_SUB_PRIORITY_IDX0             INT_SUBPRIORITY_LEVEL1
 
 #define DRV_USART_XMIT_QUEUE_SIZE_IDX0              80
 #define DRV_USART_RCV_QUEUE_SIZE_IDX0               80

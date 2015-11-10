@@ -78,6 +78,28 @@ void IntHandlerDrvTmrInstance0(void)
     PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_2);
 
 }
+
+IntHandlerDrvTmrInstance1(void)
+
+{
+    
+    char in = '1';
+    xQueueSendFromISR(MsgQueue_LeftEncoder, &in, 0);
+    PLIB_PORTS_PinToggle(PORTS_ID_0, PORT_CHANNEL_A, PORTS_BIT_POS_3);
+    PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_3);
+
+}
+
+IntHandlerDrvTmrInstance2(void)
+
+{
+
+    char in = '1';
+    xQueueSendFromISR(MsgQueue_RightEncoder, &in, 0);
+    PLIB_PORTS_PinToggle(PORTS_ID_0, PORT_CHANNEL_C, PORTS_BIT_POS_1);
+    PLIB_INT_SourceFlagClear(INT_ID_0,INT_SOURCE_TIMER_4);
+
+}
  
 void IntHandlerDrvUsartInstance0(void)
 {

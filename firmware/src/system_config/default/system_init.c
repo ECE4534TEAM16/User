@@ -68,22 +68,22 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 
 /*** DEVCFG1 ***/
 
-#pragma config FNOSC =      FRCDIV
+#pragma config FNOSC =      PRIPLL
 #pragma config FSOSCEN =    OFF
-#pragma config IESO =       ON
-#pragma config POSCMOD =    OFF
+#pragma config IESO =       OFF
+#pragma config POSCMOD =    XT
 #pragma config OSCIOFNC =   OFF
-#pragma config FPBDIV =     DIV_8
-#pragma config FCKSM =      CSDCMD
+#pragma config FPBDIV =     DIV_1
+#pragma config FCKSM =      CSECME
 #pragma config WDTPS =      PS1048576
-#pragma config FWDTEN =     ON
+#pragma config FWDTEN =     OFF
 
 /*** DEVCFG2 ***/
 
-#pragma config FPLLIDIV =   DIV_12
-#pragma config FPLLMUL =    MUL_24
-#pragma config FPLLODIV =   DIV_256
-#pragma config UPLLIDIV =   DIV_12
+#pragma config FPLLIDIV =   DIV_2
+#pragma config FPLLMUL =    MUL_20
+#pragma config FPLLODIV =   DIV_1
+#pragma config UPLLIDIV =   DIV_2
 #pragma config UPLLEN =     OFF
 
 /*** DEVCFG3 ***/
@@ -94,7 +94,7 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #pragma config FETHIO =     ON
 #pragma config FCANIO =     ON
 #pragma config FUSBIDIO =   ON
-#pragma config FVBUSONIO =  ON
+#pragma config FVBUSONIO =  OFF
 // </editor-fold>
 
 
@@ -203,10 +203,14 @@ void SYS_Initialize ( void* data )
     /* Initialize Drivers */
     /*Initialize TMR0 */
     DRV_TMR0_Initialize();
+    /*Initialize TMR1 */
+    DRV_TMR1_Initialize();
+    /*Initialize TMR2 */
+    DRV_TMR2_Initialize();
  
      sysObj.drvUsart0 = DRV_USART_Initialize(DRV_USART_INDEX_0, (SYS_MODULE_INIT *)&drvUsart0InitData);
-    SYS_INT_VectorPrioritySet(INT_VECTOR_UART1, INT_PRIORITY_LEVEL1);
-    SYS_INT_VectorSubprioritySet(INT_VECTOR_UART1, INT_SUBPRIORITY_LEVEL0);
+    SYS_INT_VectorPrioritySet(INT_VECTOR_UART1, INT_PRIORITY_LEVEL3);
+    SYS_INT_VectorSubprioritySet(INT_VECTOR_UART1, INT_SUBPRIORITY_LEVEL1);
 
 
     /*Initialize OC0 */

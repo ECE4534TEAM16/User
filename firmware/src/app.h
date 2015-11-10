@@ -62,6 +62,10 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 #include "timers.h"
 #include <time.h>
 #include "messageQueue.h"
+#include "system/system.h"
+#include "system/clk/sys_clk.h"
+#include "driver/usart/drv_usart.h"
+#include "system/devcon/sys_devcon.h"
 
 // DOM-IGNORE-BEGIN
 #ifdef __cplusplus  // Provide C++ Compatibility
@@ -70,19 +74,27 @@ extern "C" {
 
 #endif
 // DOM-IGNORE-END 
-
+ 
 // *****************************************************************************
 // *****************************************************************************
 // Section: Type Definitions
 // *****************************************************************************
 // *****************************************************************************
-#define APP_NO_OF_BYTES_TO_READ 1
-#define APP_NUM_LINES 5
-#define APP_BUFFER_SIZE 80
-#define APP_UART_BAUDRATE 57600
-#define APP_USR_ESC_KEY 0x1B
-#define APP_USART_RETURN_KEY 0x0D
-#define APP_USART_DRIVER_INDEX DRV_USART_INDEX_0
+#define APP_TEST                true 
+#define APP_ERROR_TESTING       false
+#define APP_MAX_ERROR_LOG       5
+#define APP_NUMBER_OF_TICKS     5
+#define APP_NO_OF_BYTES_TO_READ 1          
+#define APP_BUFFER_SIZE         80
+#define APP_ERROR_BUFFER_SIZE   75      //must be 5 less than APP_BUFFER_SIZE
+#define INSTRUCTION_BUFFER_SIZE 160
+#define APP_UART_BAUDRATE       57600
+#define APP_USR_ESC_KEY         0x1B
+#define APP_USR_RETURN_KEY      0x0D
+#define APP_USART_DRIVER_INDEX  DRV_USART_INDEX_0
+
+#define APP_DRV_CONTEXT         1
+#define APP_USR_CONTEXT         2
     
     
 // *****************************************************************************
@@ -102,8 +114,15 @@ typedef enum
 	APP_STATE_INIT=0,
 
 	/* TODO: Define states used by the application state machine. */
-            APP_STATE_RUN,
-            APP_STATE_IDLE,
+            APP_DRV_OPEN,
+            APP_DRV_READY,
+            APP_DRV_MSG_WRITE,
+            APP_WAIT_FOR_DONE,
+            APP_USR_MSG_READ,
+            APP_USR_MSG_WRITE,
+            APP_IDLE,
+            APP_ERROR,
+            APP_STATE_END
             
 } APP_STATES;
 
@@ -124,10 +143,53 @@ typedef enum
 typedef struct
 {
     /* The application's current state */
-    APP_STATES state;
+    APP_STATES currentState;
 
     /* TODO: Define any additional data used by the application. */
     uint8_t IRData;
+    int randCounter;
+    
+    //encoder stuff
+    int leftEncoder;
+    int rightEncoder;
+    
+    /* Application Previous state */
+    APP_STATES prevState;
+
+    /* USART buffer for display */
+    char buffer[APP_BUFFER_SIZE];
+
+    /* Data Size in the USART Buffer */
+    uint32_t bufferSize;
+
+    /* Demo Application Message Indices */
+    uint32_t usrMsgIndex;
+    
+    /* Client Status */
+    DRV_USART_CLIENT_STATUS usartStatus;
+
+    /* USART driver handle */
+    DRV_HANDLE usartHandle;
+
+    /* Handle returned by USART for buffer submitted */
+    DRV_USART_BUFFER_HANDLE usartBufferHandle;
+
+    /* Handle returned by USART for buffer event */
+    DRV_USART_BUFFER_EVENT  usartBufferEvent;
+
+    /* Flag to indicate the driver message is been processed */
+    bool drvBufferEventComplete;
+
+    /* Flag to indicate the user message is been processed */
+    bool usrBufferEventComplete;
+    
+    char minBuffer[80];
+    char InstructionSet[INSTRUCTION_BUFFER_SIZE];
+    
+    bool queued;
+    bool initialized;
+    bool error;
+    bool error_sent;
 
 } APP_DATA;
 
@@ -147,6 +209,11 @@ void getFromMessageQueue();
 void hardLeft();
 void hardRight();
 void hardStraight();
+
+void App_GetNextTaskState ( uint32_t appState );
+void fillQueue();
+void AddInstr();
+void setError(char* error);
 // *****************************************************************************
 // *****************************************************************************
 // Section: Application Initialization and State Machine Functions
