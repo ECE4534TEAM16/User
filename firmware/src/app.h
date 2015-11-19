@@ -81,8 +81,8 @@ extern "C" {
 // *****************************************************************************
 // *****************************************************************************
 #define APP_TEST                true 
-#define APP_ERROR_TESTING       false
-#define APP_MAX_ERROR_LOG       5
+#define APP_ERROR_TESTING       true
+#define APP_MAX_ERROR_LOG       32
 #define APP_NUMBER_OF_TICKS     5
 #define APP_NO_OF_BYTES_TO_READ 1          
 #define APP_BUFFER_SIZE         80
@@ -149,10 +149,6 @@ typedef struct
     uint8_t IRData;
     int randCounter;
     
-    //encoder stuff
-    int leftEncoder;
-    int rightEncoder;
-    
     /* Application Previous state */
     APP_STATES prevState;
 
@@ -191,6 +187,10 @@ typedef struct
     bool error;
     bool error_sent;
 
+    //task testing
+    TimerHandle_t irTimer;
+    TaskHandle_t irTask;
+    
 } APP_DATA;
 
 

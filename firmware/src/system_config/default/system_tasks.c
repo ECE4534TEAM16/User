@@ -119,8 +119,6 @@ static void _SYS_Tasks ( void )
 
         /* Maintain Middleware */
 
-        /* Task Delay */
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
 
@@ -138,7 +136,6 @@ static void _APP_Tasks(void)
     while(1)
     {
         APP_Tasks();
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
 

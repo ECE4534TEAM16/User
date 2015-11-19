@@ -97,32 +97,38 @@ extern SYSTEM_OBJECTS sysObj;
 
 /* TODO:  Add any necessary callback funtions.
 */
-void readIR()
+void readIR(TimerHandle_t pxTimer)
 {
     //chipkit pit 48-53
     /* Read from sensors
     appData.IRData = PLIB_PORTS_Read(PORTS_ID_0, PORTS_CHANNEL_E);
     */
     
-    uint8_t fakeIRData[] = {0,0,0,0,0};
+    uint8_t fakeIRData[] = {57,39,51,51,51,51,51,0};
+    //uint8_t fakeIRData[] = {0, 0, 0, 0, 0, 0, 0, 0};
     
     appData.IRData = fakeIRData[appData.randCounter];
     appData.randCounter++;
-    if(appData.randCounter > 4)
+    if(appData.randCounter > 7)
     {
         appData.randCounter = 0;
     }
     
-    if(appData.currentState != APP_STATE_END)
+    if(appData.currentState == APP_STATE_END)
     {
-        interpretIR();
+        xTimerStop(pxTimer,0);
     }
-
-    //setError("Hello");
+    else
+    {
+        xTimerStop(pxTimer,0);
+        interpretIR();
+        xTimerStart(pxTimer,0);
+    }
 }
 
 void moveRobot(int leftSpeed, int rightSpeed)
 {
+    //setError("moveRobot");
     if(leftSpeed > 0)
     {
         PLIB_PORTS_PinClear(PORTS_ID_0, PORT_CHANNEL_G, PORTS_BIT_POS_1);
@@ -144,7 +150,6 @@ void moveRobot(int leftSpeed, int rightSpeed)
     PLIB_OC_PulseWidth16BitSet(1,leftSpeed);
     PLIB_OC_PulseWidth16BitSet(0,rightSpeed);
     
-    //debugOut(printf("moveRobot() - Left Motor: %i, Right Motor: %i", leftSpeed, rightSpeed))
 }
 
 // *****************************************************************************
@@ -157,8 +162,8 @@ void moveRobot(int leftSpeed, int rightSpeed)
 */
 
 void interpretIR()
-{
-    //PLIB_PORTS_Write (PORTS_ID_0, PORT_CHANNEL_E, appData.IRData);
+{   
+    //setError("interpretIR");
     //ASSUMPTION - Dark line = 0
     switch(appData.IRData)
     {
@@ -196,74 +201,84 @@ void interpretIR()
         
         //INTERSECTIONS
         //Left
-        case 3: 
+        case 3:  //00000011
         {
             moveRobot(0,0);
             getFromMessageQueue();
             break;
         }
         //Right
-        case 48: 
+        case 48: //00110000
         {
             moveRobot(0,0);
             getFromMessageQueue();
             break;
         }
         //Both
-        case 0: 
+        case 0:  //00000000
         {
             moveRobot(0,0);
             getFromMessageQueue();
             break;
         }
         
-        default:
+        default: //Everything else - handles weird characters, completely off the line, etc.
         {
             moveRobot(0,0);
             break;
         }
     }
-    
-    //debugOut(printf("interpretIR() - Case Read: %i", appData.IRData))
 }
 
 void getFromMessageQueue()
 {
     char dir;
-    while(!xQueueReceive( MsgQueue_temp, &dir, 5))
+    char err[50];
+    while(!xQueueReceive( MsgQueue_User_Directions, &dir, APP_NUMBER_OF_TICKS))
     {
         //BAD
     }
     
-    switch(dir)
+    sprintf(err, "getFromMessageQueue() - Case Read: %c", dir);
+    
+    if(appData.currentState != APP_STATE_END)
     {
-        case 'l':
+        setError(err);
+        switch(dir)
         {
-            hardLeft();
-            break;
-        }
-        case 'r':
-        {
-            hardRight();
-            break;
-        }
-        case 's':
-        {
-            hardStraight();
-            break;
-        }
-        case 'E':
-        {
-            appData.currentState = APP_STATE_END;
-            break;
-        }
-        default:
-        {
-            break;
+            case 'l':
+            {
+                hardLeft();
+                break;
+            }
+            case 'r':
+            {
+                hardRight();
+                break;
+            }
+            case 'f':
+            {
+                hardStraight();
+                break;
+            }
+            case 'E':
+            {
+                setError("Destination");
+                appData.currentState = APP_STATE_END;
+                break;
+            }
+            case 0:
+            {
+                break;
+            }
+            default:
+            {
+                setError("Invalid Character in Message Queue!");
+                appData.currentState = APP_STATE_END;
+                break;
+            }
         }
     }
-    
-    //debugOut(printf("getFromMessageQueue() - Case Read: %c", dir))
 }
 
 void hardLeft()
@@ -272,16 +287,15 @@ void hardLeft()
     char dir;
     xQueueReset(MsgQueue_LeftEncoder);
     moveRobot(-800,800);
-    while(x < 9)
+    while(x < 8)
     {
         if(xQueueReceive( MsgQueue_LeftEncoder, &dir, 0))
         {
             x++;
         }
-        PLIB_PORTS_Write (PORTS_ID_0, PORT_CHANNEL_E, x);
     }
     moveRobot(0,0);
-    //debugOut(printf("hardLeft()"))
+    setError("Hard Left");
 }
 void hardRight()
 {
@@ -289,7 +303,7 @@ void hardRight()
     char dir;
     xQueueReset(MsgQueue_RightEncoder);
     moveRobot(800,-800);
-    while(x < 9)
+    while(x < 8)
     {
         if(xQueueReceive( MsgQueue_RightEncoder, &dir, 0))
         {
@@ -298,7 +312,7 @@ void hardRight()
         PLIB_PORTS_Write (PORTS_ID_0, PORT_CHANNEL_E, x);
     }
     moveRobot(0,0);
-    //debugOut(printf("hardRight()"))
+    setError("Hard Right");
 }
 void hardStraight()
 {
@@ -306,7 +320,7 @@ void hardStraight()
     char dir;
     xQueueReset(MsgQueue_RightEncoder);
     moveRobot(800,800);
-    while(x < 9)
+    while(x < 10)
     {
         if(xQueueReceive( MsgQueue_RightEncoder, &dir, 0))
         {
@@ -315,7 +329,7 @@ void hardStraight()
         PLIB_PORTS_Write (PORTS_ID_0, PORT_CHANNEL_E, x);
     }
     moveRobot(0,0);
-    //debugOut(printf("hardStraight()"))
+    setError("Hard Forward");
 }
 
 // *****************************************************************************
@@ -334,9 +348,6 @@ void hardStraight()
 
 void APP_Initialize ( void )
 {
-    /* Place the App state machine in its initial state. */
-    appData.currentState = APP_STATE_INIT;
-    
     /* TODO: Initialize your application's state machine and other
      * parameters.
      */
@@ -369,11 +380,6 @@ void APP_Initialize ( void )
     DRV_TMR2_Start();
     
     //Message Queues
-    MsgQueue_User_Directions = xQueueCreate( 50, sizeof( char ) );
-    if( MsgQueue_User_Directions == 0 )
-    {
-        //BAD
-    }
     MsgQueue_temp = xQueueCreate( 50, sizeof( char ) );
     if( MsgQueue_temp == 0 )
     {
@@ -391,6 +397,7 @@ void APP_Initialize ( void )
     }
     
     //temp queue data
+    /*
     char in = 'l';
     xQueueSend(MsgQueue_temp, &in, 5);
     in = 'r';
@@ -405,12 +412,10 @@ void APP_Initialize ( void )
     xQueueSend(MsgQueue_temp, &in, 5);
     in = 'E';
     xQueueSend(MsgQueue_temp, &in, 5);
+     * */
     
     //FreeRTOS timer
     appData.randCounter = 0;
-    
-    TimerHandle_t irTimer = xTimerCreate("IR Timer", 500/portTICK_PERIOD_MS,pdTRUE, (void*) 1, readIR);
-    xTimerStart(irTimer, 100);
     
     //UART STUFF
      /* Set the App. previous state to its initial state. */
@@ -460,12 +465,16 @@ void APP_Initialize ( void )
         //fatal error
     }
     
+    appData.irTimer = xTimerCreate("IR Timer", 500/portTICK_PERIOD_MS,pdTRUE, (void*) 1, readIR);
+    xTimerStart(appData.irTimer, 100);
+    
 }
 
 //if error occurs before UART is opened the error will be fatal
 //otherwise the system will try to return to a functioning state
 void setError(char* error)
 {
+    
     xQueueSendToBack(MsgQueue_Error_Log, error, APP_NUMBER_OF_TICKS);
     appData.error = true;
     
@@ -575,13 +584,6 @@ void APP_Tasks ( void )
     /* Check the Application State*/
     switch ( appData.currentState )
     {
-        case APP_STATE_INIT:
-        {
-            appData.currentState = APP_DRV_OPEN;
-            appData.prevState = APP_STATE_INIT;
-            break;
-        }
-        
         /* Open USART Driver and set the Buffer Event Handling */
         case APP_DRV_OPEN:
         {
