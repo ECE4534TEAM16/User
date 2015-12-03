@@ -99,7 +99,7 @@ extern SYSTEM_OBJECTS sysObj;
 */
 void readIR()
 {    
-    char dir;
+    char dir = 0;
     
     PLIB_PORTS_DirectionInputSet(PORTS_ID_0, PORT_CHANNEL_E, 0xFF);
 
@@ -115,23 +115,10 @@ void readIR()
     
     PLIB_PORTS_Write(PORTS_ID_0, PORT_CHANNEL_B, appData.IRData);
     
-    if(!appData.running)
-    {
-        xQueueReceive( MsgQueue_User_Directions, &dir, APP_NUMBER_OF_TICKS);
-    }
-    
-    if(dir == 'S')  
-    {
-        //appData.running = true;
-        xQueueReset(MsgQueue_User_Directions);
-    }
-    
     if(appData.currentState != APP_STATE_END && appData.running)
     {
         interpretIR();
     }
-    
-    PLIB_PORTS_PinToggle(PORTS_ID_0, PORT_CHANNEL_A, PORTS_BIT_POS_3);
 }
 
 void moveRobot(int leftSpeed, int rightSpeed)
@@ -312,7 +299,7 @@ void getFromMessageQueue()
             case 'E':
             {
                 setError("Destination");
-                appData.currentState = APP_STATE_END;
+                appData.running = false;
                 break;
             }
             case 0:
@@ -322,7 +309,7 @@ void getFromMessageQueue()
             default:
             {
                 setError("Invalid Character in Message Queue!");
-                appData.currentState = APP_STATE_END;
+                appData.running = false;
                 break;
             }
         }
@@ -574,6 +561,8 @@ void AddInstr()
     }
     if(appData.buffer[0] == 'E' && appData.queued == false)
         fillQueue();
+    if(appData.buffer[0] == 'S' && appData.running == false)
+        appData.running = true;
     if(APP_ERROR_TESTING)
     {
         if(appData.buffer[0] == '1')
