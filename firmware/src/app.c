@@ -98,9 +98,7 @@ extern SYSTEM_OBJECTS sysObj;
 /* TODO:  Add any necessary callback funtions.
 */
 void readIR()
-{    
-    char dir = 0;
-    
+{
     PLIB_PORTS_DirectionInputSet(PORTS_ID_0, PORT_CHANNEL_E, 0xFF);
 
     const TickType_t waitDecay = 4 / portTICK_PERIOD_MS;
@@ -250,7 +248,7 @@ void interpretIR()
             break;
         }
         //Both
-        case 0:  //00000000
+        case 63:  //00000000
         {
             moveRobot(0,0);
             getFromMessageQueue();
@@ -302,6 +300,10 @@ void getFromMessageQueue()
                 appData.running = false;
                 break;
             }
+            case 'S':
+            {
+                break;
+            }
             case 0:
             {
                 break;
@@ -322,7 +324,7 @@ void hardLeft()
     char dir;
     xQueueReset(MsgQueue_LeftEncoder);
     moveRobot(800,800);
-    while(x < 17)
+    while(x < 12)
     {
         if(xQueueReceive( MsgQueue_RightEncoder, &dir, 0))
         {
