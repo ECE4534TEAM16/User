@@ -146,8 +146,9 @@ typedef struct
     APP_STATES currentState;
 
     /* TODO: Define any additional data used by the application. */
-    uint8_t IRData;
+    uint32_t IRData;
     int randCounter;
+    bool running;
     
     /* Application Previous state */
     APP_STATES prevState;

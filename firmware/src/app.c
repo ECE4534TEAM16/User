@@ -97,33 +97,41 @@ extern SYSTEM_OBJECTS sysObj;
 
 /* TODO:  Add any necessary callback funtions.
 */
-void readIR(TimerHandle_t pxTimer)
-{
-    //chipkit pit 48-53
-    /* Read from sensors
-    appData.IRData = PLIB_PORTS_Read(PORTS_ID_0, PORTS_CHANNEL_E);
-    */
+void readIR()
+{    
+    char dir;
     
-    uint8_t fakeIRData[] = {57,39,51,51,51,51,51,0};
-    //uint8_t fakeIRData[] = {0, 0, 0, 0, 0, 0, 0, 0};
+    PLIB_PORTS_DirectionInputSet(PORTS_ID_0, PORT_CHANNEL_E, 0xFF);
+
+    const TickType_t waitDecay = 4 / portTICK_PERIOD_MS;
+    vTaskDelay(waitDecay);
     
-    appData.IRData = fakeIRData[appData.randCounter];
-    appData.randCounter++;
-    if(appData.randCounter > 7)
+    appData.IRData = PLIB_PORTS_Read(PORTS_ID_0, PORT_CHANNEL_E);
+    
+    appData.IRData = appData.IRData & 0x3F;
+    
+    PLIB_PORTS_DirectionOutputSet(PORTS_ID_0, PORT_CHANNEL_E, 0xFF);
+    PLIB_PORTS_Write(PORTS_ID_0, PORT_CHANNEL_E, 0xFF);
+    
+    PLIB_PORTS_Write(PORTS_ID_0, PORT_CHANNEL_B, appData.IRData);
+    
+    if(!appData.running)
     {
-        appData.randCounter = 0;
+        xQueueReceive( MsgQueue_User_Directions, &dir, APP_NUMBER_OF_TICKS);
     }
     
-    if(appData.currentState == APP_STATE_END)
+    if(dir == 'S')  
     {
-        xTimerStop(pxTimer,0);
+        //appData.running = true;
+        xQueueReset(MsgQueue_User_Directions);
     }
-    else
+    
+    if(appData.currentState != APP_STATE_END && appData.running)
     {
-        xTimerStop(pxTimer,0);
         interpretIR();
-        xTimerStart(pxTimer,0);
     }
+    
+    PLIB_PORTS_PinToggle(PORTS_ID_0, PORT_CHANNEL_A, PORTS_BIT_POS_3);
 }
 
 void moveRobot(int leftSpeed, int rightSpeed)
@@ -168,47 +176,87 @@ void interpretIR()
     switch(appData.IRData)
     {
         //NORMAL
-        case 51: //00110011
+        case 12: //00110011
         {
-            moveRobot(800,800);
+            moveRobot(600,600);
             break;
         }
         
         //WOBBLES
         //Off left
-        case 57: //00111001
+        case 8: //00111001
         {
-            moveRobot(800,0);
+            moveRobot(600,0);
             break;
         }
-        case 60: //00111100
+        case 40: //00111100
         {
-            moveRobot(800,0);
+            moveRobot(600,0);
+            break;
+        }
+        case 32: //00111001
+        {
+            moveRobot(600,0);
+            break;
+        }
+        case 48: //00111100
+        {
+            moveRobot(600,0);
+            break;
+        }
+        case 16: //00111001
+        {
+            moveRobot(600,0);
             break;
         }
         
         //Off right
-        case 39: //00100111
+        case 2: //00100111
         {
-            moveRobot(0,800);
+            moveRobot(0,600);
             break;
         }
-        case 15: //00001111
+        case 6: //00001111
         {
-            moveRobot(0,800);
+            moveRobot(0,600);
+            break;
+        }
+        case 4: //00001111
+        {
+            moveRobot(0,600);
+            break;
+        }
+        case 3: //00001111
+        {
+            moveRobot(0,600);
+            break;
+        }
+        case 1: //00001111
+        {
+            moveRobot(0,600);
             break;
         }
         
         //INTERSECTIONS
-        //Left
-        case 3:  //00000011
+        case 47:  //00000011
         {
             moveRobot(0,0);
             getFromMessageQueue();
             break;
         }
-        //Right
-        case 48: //00110000
+        case 15:  //00000011
+        {
+            moveRobot(0,0);
+            getFromMessageQueue();
+            break;
+        }
+        case 62: //00110000
+        {
+            moveRobot(0,0);
+            getFromMessageQueue();
+            break;
+        }
+        case 60: //00110000
         {
             moveRobot(0,0);
             getFromMessageQueue();
@@ -286,6 +334,16 @@ void hardLeft()
     int x = 0;
     char dir;
     xQueueReset(MsgQueue_LeftEncoder);
+    moveRobot(800,800);
+    while(x < 17)
+    {
+        if(xQueueReceive( MsgQueue_RightEncoder, &dir, 0))
+        {
+            x++;
+        }
+    }
+    x = 0;
+    xQueueReset(MsgQueue_LeftEncoder);
     moveRobot(-800,800);
     while(x < 8)
     {
@@ -302,6 +360,16 @@ void hardRight()
     int x = 0;
     char dir;
     xQueueReset(MsgQueue_RightEncoder);
+    moveRobot(800,800);
+    while(x < 5)
+    {
+        if(xQueueReceive( MsgQueue_RightEncoder, &dir, 0))
+        {
+            x++;
+        }
+    }
+    x = 0;
+    xQueueReset(MsgQueue_RightEncoder);
     moveRobot(800,-800);
     while(x < 8)
     {
@@ -309,7 +377,6 @@ void hardRight()
         {
             x++;
         }
-        PLIB_PORTS_Write (PORTS_ID_0, PORT_CHANNEL_E, x);
     }
     moveRobot(0,0);
     setError("Hard Right");
@@ -320,13 +387,12 @@ void hardStraight()
     char dir;
     xQueueReset(MsgQueue_RightEncoder);
     moveRobot(800,800);
-    while(x < 10)
+    while(x < 5)
     {
         if(xQueueReceive( MsgQueue_RightEncoder, &dir, 0))
         {
             x++;
         }
-        PLIB_PORTS_Write (PORTS_ID_0, PORT_CHANNEL_E, x);
     }
     moveRobot(0,0);
     setError("Hard Forward");
@@ -365,15 +431,20 @@ void APP_Initialize ( void )
     PLIB_OC_PulseWidth16BitSet(0,0);
     PLIB_OC_PulseWidth16BitSet(1,0);
     
+    //motor direction
     PLIB_PORTS_PinDirectionOutputSet (PORTS_ID_0, PORT_CHANNEL_C, PORTS_BIT_POS_14);
     PLIB_PORTS_PinDirectionOutputSet (PORTS_ID_0, PORT_CHANNEL_G, PORTS_BIT_POS_1);
     
+    //leds 4 and 5
     PLIB_PORTS_PinDirectionOutputSet (PORTS_ID_0, PORT_CHANNEL_A, PORTS_BIT_POS_3);
     PLIB_PORTS_PinDirectionOutputSet (PORTS_ID_0, PORT_CHANNEL_C, PORTS_BIT_POS_1);
     PLIB_PORTS_PinClear(PORTS_ID_0, PORT_CHANNEL_A, PORTS_BIT_POS_3);
     PLIB_PORTS_PinClear(PORTS_ID_0, PORT_CHANNEL_C, PORTS_BIT_POS_1);
 
+    //for ir sensors
     PLIB_PORTS_DirectionOutputSet (PORTS_ID_0, PORT_CHANNEL_E, 0xFF);
+    PLIB_PORTS_Write(PORTS_ID_0, PORT_CHANNEL_E, 0xFF);
+    PLIB_PORTS_DirectionOutputSet (PORTS_ID_0, PORT_CHANNEL_B, 0xFF);
     
     //Encoders
     DRV_TMR1_Start();
@@ -395,24 +466,6 @@ void APP_Initialize ( void )
     {
         //BAD
     }
-    
-    //temp queue data
-    /*
-    char in = 'l';
-    xQueueSend(MsgQueue_temp, &in, 5);
-    in = 'r';
-    xQueueSend(MsgQueue_temp, &in, 5);
-    in = 's';
-    xQueueSend(MsgQueue_temp, &in, 5);
-    in = 'r';
-    xQueueSend(MsgQueue_temp, &in, 5);
-    in = 's';
-    xQueueSend(MsgQueue_temp, &in, 5);
-    in = 'l';
-    xQueueSend(MsgQueue_temp, &in, 5);
-    in = 'E';
-    xQueueSend(MsgQueue_temp, &in, 5);
-     * */
     
     //FreeRTOS timer
     appData.randCounter = 0;
@@ -465,7 +518,9 @@ void APP_Initialize ( void )
         //fatal error
     }
     
-    appData.irTimer = xTimerCreate("IR Timer", 500/portTICK_PERIOD_MS,pdTRUE, (void*) 1, readIR);
+    appData.running = false;
+    
+    appData.irTimer = xTimerCreate("IR Timer", 100/portTICK_PERIOD_MS,pdTRUE, (void*) 1, readIR);
     xTimerStart(appData.irTimer, 100);
     
 }
