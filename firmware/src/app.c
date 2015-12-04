@@ -324,9 +324,9 @@ void hardLeft()
     char dir;
     xQueueReset(MsgQueue_LeftEncoder);
     moveRobot(800,800);
-    while(x < 12)
+    while(x < 6)
     {
-        if(xQueueReceive( MsgQueue_RightEncoder, &dir, 0))
+        if(xQueueReceive( MsgQueue_LeftEncoder, &dir, 0))
         {
             x++;
         }
@@ -334,7 +334,7 @@ void hardLeft()
     x = 0;
     xQueueReset(MsgQueue_LeftEncoder);
     moveRobot(-800,800);
-    while(x < 8)
+    while(x < 7)
     {
         if(xQueueReceive( MsgQueue_LeftEncoder, &dir, 0))
         {
@@ -350,7 +350,7 @@ void hardRight()
     char dir;
     xQueueReset(MsgQueue_RightEncoder);
     moveRobot(800,800);
-    while(x < 5)
+    while(x < 6)
     {
         if(xQueueReceive( MsgQueue_RightEncoder, &dir, 0))
         {
@@ -360,7 +360,7 @@ void hardRight()
     x = 0;
     xQueueReset(MsgQueue_RightEncoder);
     moveRobot(800,-800);
-    while(x < 8)
+    while(x < 7)
     {
         if(xQueueReceive( MsgQueue_RightEncoder, &dir, 0))
         {
